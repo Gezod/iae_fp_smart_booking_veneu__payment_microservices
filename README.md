@@ -73,7 +73,7 @@ Proyek ini dikembangkan untuk keperluan akademik dan pembelajaran tentang arsite
 ## 👥 Anggota Kelompok
 
 - 👨‍💻 Refangga Lintar Prayoga – NIM 1204220137  
-- 👩‍💻 Nama 2 – NIM 0987654321  
+- 👩‍💻 Muhammad Firdaus Garra Daeng Sikki – NIM 1204220049  
 - 👨‍💻 Amiralutfia Desy R – NIM 1204220060
  
 
