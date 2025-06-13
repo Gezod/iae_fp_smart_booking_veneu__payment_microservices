@@ -1,0 +1,224 @@
+version: "3.8"
+
+services:
+  mysql_venue:
+    image: mysql:8
+    container_name: mysql_venue
+    environment:
+      MYSQL_ROOT_PASSWORD: root
+      MYSQL_DATABASE: venue_db
+    volumes:
+      - venuedb_data:/var/lib/mysql
+    restart: unless-stopped
+
+  mysql_booking:
+    image: mysql:8
+    container_name: mysql_booking
+    environment:
+      MYSQL_ROOT_PASSWORD: root
+      MYSQL_DATABASE: booking_db
+    volumes:
+      - bookingdb_data:/var/lib/mysql
+    restart: unless-stopped
+
+  mysql_payment:
+    image: mysql:8
+    container_name: mysql_payment
+    environment:
+      MYSQL_ROOT_PASSWORD: root
+      MYSQL_DATABASE: payment_db
+    volumes:
+      - paymentdb_data:/var/lib/mysql
+    restart: unless-stopped
+
+  rabbitmq:
+    image: rabbitmq:3-management
+    container_name: rabbitmq
+    ports:
+      - "5672:5672"
+      - "15672:15672"
+    environment:
+      RABBITMQ_DEFAULT_USER: guest
+      RABBITMQ_DEFAULT_PASS: guest
+    restart: unless-stopped
+
+  phpmyadmin-venue:
+    image: phpmyadmin/phpmyadmin
+    container_name: phpmyadmin-venue
+    environment:
+      PMA_HOST: mysql_venue
+      MYSQL_ROOT_PASSWORD: root
+    ports:
+      - "8081:80"
+    depends_on:
+      - mysql_venue
+    restart: unless-stopped
+
+  phpmyadmin-booking:
+    image: phpmyadmin/phpmyadmin
+    container_name: phpmyadmin-booking
+    environment:
+      PMA_HOST: mysql_booking
+      MYSQL_ROOT_PASSWORD: root
+    ports:
+      - "8082:80"
+    depends_on:
+      - mysql_booking
+    restart: unless-stopped
+
+  phpmyadmin-payment:
+    image: phpmyadmin/phpmyadmin
+    container_name: phpmyadmin-payment
+    environment:
+      PMA_HOST: mysql_payment
+      MYSQL_ROOT_PASSWORD: root
+    ports:
+      - "8083:80"
+    depends_on:
+      - mysql_payment
+    restart: unless-stopped
+
+  postgres_hasura:
+    image: postgres:15
+    container_name: postgres_hasura
+    environment:
+      POSTGRES_USER: hasura_user
+      POSTGRES_PASSWORD: hasura_password
+      POSTGRES_DB: hasura_db
+    volumes:
+      - hasuradb_data:/var/lib/postgresql/data
+      - ./hasura-init:/docker-entrypoint-initdb.d
+    restart: unless-stopped
+
+  hasura:
+    image: hasura/graphql-engine:v2.24.0
+    container_name: hasura
+    ports:
+      - "8090:8080"
+    depends_on:
+      - postgres_hasura
+    environment:
+      HASURA_GRAPHQL_DATABASE_URL: postgres://hasura_user:hasura_password@postgres_hasura:5432/hasura_db
+      HASURA_GRAPHQL_ENABLE_CONSOLE: "true"
+      HASURA_GRAPHQL_ADMIN_SECRET: myadminsecretkey
+      HASURA_GRAPHQL_JWT_SECRET: '{"type":"HS256", "key":"this_is_a_very_long_jwt_secret_key_123456"}'
+    restart: unless-stopped
+
+  venue-service:
+    build:
+      context: ./venue-service
+    container_name: venue-service
+    ports:
+      - "8001:80"
+    depends_on:
+      - mysql_venue
+    environment:
+      APP_ENV: local
+      APP_DEBUG: true
+      APP_NAME: VenueService
+      DB_CONNECTION: mysql
+      DB_HOST: mysql_venue
+      DB_PORT: 3306
+      DB_DATABASE: venue_db
+      DB_USERNAME: root
+      DB_PASSWORD: root
+    volumes:
+      - ./venue-service:/var/www
+    working_dir: /var/www
+    command: >
+      sh -c "chown -R www-data:www-data storage bootstrap/cache &&
+             chmod -R 775 storage bootstrap/cache &&
+             apache2-foreground"
+    restart: unless-stopped
+
+  booking-service:
+    build:
+      context: ./booking-service
+    container_name: booking-service
+    ports:
+      - "8002:80"
+    depends_on:
+      - mysql_booking
+      - rabbitmq
+    environment:
+      APP_ENV: local
+      APP_DEBUG: true
+      APP_NAME: BookingService
+      DB_CONNECTION: mysql
+      DB_HOST: mysql_booking
+      DB_PORT: 3306
+      DB_DATABASE: booking_db
+      DB_USERNAME: root
+      DB_PASSWORD: root
+      RABBITMQ_HOST: rabbitmq
+      RABBITMQ_PORT: 5672
+      RABBITMQ_USER: guest
+      RABBITMQ_PASSWORD: guest
+    volumes:
+      - ./booking-service:/var/www
+    working_dir: /var/www
+    command: >
+      sh -c "chown -R www-data:www-data storage bootstrap/cache &&
+             chmod -R 775 storage bootstrap/cache &&
+             apache2-foreground"
+    restart: unless-stopped
+
+  payment-service:
+    build:
+      context: ./payment-service
+    container_name: payment-service
+    ports:
+      - "8003:80"
+    depends_on:
+      - mysql_payment
+      - rabbitmq
+    environment:
+      APP_ENV: local
+      APP_DEBUG: true
+      APP_NAME: PaymentService
+      DB_CONNECTION: mysql
+      DB_HOST: mysql_payment
+      DB_PORT: 3306
+      DB_DATABASE: payment_db
+      DB_USERNAME: root
+      DB_PASSWORD: root
+      RABBITMQ_HOST: rabbitmq
+      RABBITMQ_PORT: 5672
+      RABBITMQ_USER: guest
+      RABBITMQ_PASSWORD: guest
+      RABBITMQ_QUEUE: booking_created
+    volumes:
+      - ./payment-service:/var/www
+    working_dir: /var/www
+    command: >
+      sh -c "chown -R www-data:www-data storage bootstrap/cache &&
+             chmod -R 775 storage bootstrap/cache &&
+             apache2-foreground"
+    restart: unless-stopped
+
+  graphql-gateway:
+    build:
+      context: ./graphql-gateway
+    container_name: graphql-gateway
+    ports:
+      - "8010:80"
+    depends_on:
+      - venue-service
+      - booking-service
+      - payment-service
+    environment:
+      APP_ENV: local
+      APP_DEBUG: true
+    volumes:
+      - ./graphql-gateway:/var/www
+    working_dir: /var/www
+    command: >
+      sh -c "chown -R www-data:www-data storage bootstrap/cache || true &&
+             apache2-foreground"
+    restart: unless-stopped
+
+volumes:
+  venuedb_data:
+  bookingdb_data:
+  paymentdb_data:
+  hasuradb_data:

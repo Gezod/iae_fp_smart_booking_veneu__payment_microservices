@@ -1,0 +1,61 @@
+type Venue {
+  id: ID!
+  name: String!
+  location: String!
+  price_per_hour: Int!
+  available_slots: Int!
+}
+
+type Booking {
+  id: ID!
+  user_id: Int!
+  venue_id: Int!
+  venue_name: String!
+  slot_booked: Int!
+  price_per_slot: Int!
+  total_price: Int!
+  start_time: String!
+  end_time: String!
+}
+
+type Payment {
+  id: ID!
+  booking_id: Int!
+  amount: Int!
+  status: String!
+  paid_at: DateTime
+}
+
+type Query {
+  venues: [Venue!]!
+    @field(resolver: "App\\GraphQL\\Queries\\VenueQuery")
+
+  bookings: [Booking!]!
+    @field(resolver: "App\\GraphQL\\Queries\\BookingQuery")
+
+  payments: [Payment!]!
+    @field(resolver: "App\\GraphQL\\Queries\\PaymentQuery")
+}
+
+input CreateBookingInput {
+  user_id: Int!
+  venue_id: Int!
+  slot_booked: Int!
+  start_time: String!
+  end_time: String!
+}
+
+input CreatePaymentInput {
+  booking_id: Int!
+  amount: Int!
+  status: String!
+  paid_at: DateTime
+}
+
+type Mutation {
+  createBooking(input: CreateBookingInput!): Booking
+    @field(resolver: "App\\GraphQL\\Mutations\\CreateBookingMutation")
+
+  createPayment(input: CreatePaymentInput!): Payment
+    @field(resolver: "App\\GraphQL\\Mutations\\CreatePaymentMutation")
+}

@@ -1,0 +1,14 @@
+{
+  "name": "Smart Booking GraphQL",
+  "schemaPath": "graphql-gateway/graphql/schema.graphql",
+  "includes": [
+    "graphql/**/*.graphql"
+  ],
+  "extensions": {
+    "endpoints": {
+      "default": {
+        "url": "http://localhost:8010/graphql"
+      }
+    }
+  }
+}
