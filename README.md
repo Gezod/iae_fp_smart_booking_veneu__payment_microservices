@@ -74,7 +74,7 @@ Proyek ini dikembangkan untuk keperluan akademik dan pembelajaran tentang arsite
 
 - 👨‍💻 Refangga Lintar Prayoga – NIM 1204220137  
 - 👩‍💻 Nama 2 – NIM 0987654321  
-- 👨‍💻 Nama 3 – NIM 1122334455  
+- 👨‍💻 Amiralutfia Desy R – NIM 1204220060
  
 
 Made with ❤️ by Kelompok 1
